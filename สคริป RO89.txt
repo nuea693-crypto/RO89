@@ -3578,7 +3578,7 @@ end
 
 r.CharacterAdded:Connect(function(aN)
     local aO = aN:WaitForChild("Humanoid")
-    local aP = aN:WaitForChild("HumanoidRootPart") -- เพิ่มบรรทัดนี้เพื่อดึง RootPart มาใช้
+    local aP = aN:WaitForChild("HumanoidRootPart")
 
     if aa then
         aa:Disconnect()
@@ -5136,7 +5136,7 @@ Title = "Jump Height",
         Default = 10
     },
     Callback = function(v)
-        JumpHeight = v -- ตัวแปรนี้จะถูกเรียกใช้ในส่วนที่ 2
+        JumpHeight = v
     end
 }
 
@@ -5816,119 +5816,6 @@ a1:Section{Title="PC HOLD (Z)"}
 
 
 
-local bd=
-
-a1:Toggle
-
-{
-
-Title="Snap Under Map",
-
-Default=false,
-
-Callback=function(bd)
-
-W=bd
-
-
-
-if W then
-
-ac=ac+1
-
-
-
-if ac<2 then
-
-return
-
-end
-
-
-
-Z=u and u.Position.Y or nil
-
-V=true
-
-performTeleport()
-
-else
-
-V=false
-
-X=nil
-
-Z=nil
-
-end
-
-end
-
-}
-
-
-
-
-
-D:Register("SnapUnderMap",bd)
-
-local be=
-
-a1:Slider
-
-{
-
-Title="Snap:",
-
-Step=1,
-
-Value={Min=1,Max=300,Default=10},
-
-Callback=function(be)
-
-Y=be
-
-if V and u and Z then
-
-local bf=
-
-Vector3.new(u.Position.X,Z-Y,u.Position.Z)
-
-u.CFrame=CFrame.new(bf)
-
-X=bf.Y
-
-end
-
-end
-
-}
-
-
-
-D:Register("SnapHeight",be)
-
-local bf=B:Tab{Title="ผู้เล่น",Icon="person-standing"}
-
-bf:Section{Title="ผู้เล่น"}
-
-local bg=Instance.new("Folder",g)
-
-local bh=Instance.new("Part",bg)
-
-Instance.new("Attachment",bh)
-
-bh.Anchored=true
-
-bh.CanCollide=false
-
-bh.Transparency=1
-
-local bi=
-
-bf:Toggle
-
-{
 local bd = a1:Toggle
 {
     Title = "Snap Under Map",
@@ -5943,14 +5830,12 @@ local bd = a1:Toggle
                 return
             end
 
-            -- บันทึกความสูงเดิมก่อนมุด
             Z = u and u.Position.Y or nil
             V = true
             performTeleport()
         else
-            -- [ส่วนที่เพิ่ม] สั่งให้วาร์ปกลับขึ้นพื้นดินทันทีที่กดปิด Toggle
             if V and u and Z then
-                local returnPos = Vector3.new(u.Position.X, Z + 3, u.Position.Z) -- บวก 3 เพื่อไม่ให้ติดพื้นบล็อก
+                local returnPos = Vector3.new(u.Position.X, Z + 3, u.Position.Z)
                 u.CFrame = CFrame.new(returnPos)
             end
 
@@ -5988,44 +5873,27 @@ Instance.new("Attachment", bh)
 bh.Anchored = true
 bh.CanCollide = false
 bh.Transparency = 1
-local bi = bf:Toggle{}
 
-Title="Auto Finnish",
-
-Default=false,
-
-Callback=function(bi)
-
-ad=bi
-
-if bi then
-
-applyToAll()
-
-if A then
-
-A:Notify{Title="✅ Auto Finish Enabled",Description="✅ Auto Enabled",Duration=3}
-
-end
-
-else
-
-if A then
-
-A:Notify{Title="❌ Auto Disabled",Description="❌ Auto Disabled",Duration=3}
-
-end
-
-end
-
-end
-
+local bi = bf:Toggle
+{
+    Title = "Auto Finish",
+    Default = false,
+    Callback = function(bi)
+        ad = bi
+        if bi then
+            applyToAll()
+            if A then
+                A:Notify{Title = "✅ Auto Finish Enabled", Description = "✅ Auto Enabled", Duration = 3}
+            end
+        else
+            if A then
+                A:Notify{Title = "❌ Auto Disabled", Description = "❌ Auto Disabled", Duration = 3}
+            end
+        end
+    end
 }
 
-
-
-D:Register("AutoFinnish",bi)
-
+D:Register("AutoFinnish", bi)
 bf:Divider()
 
 
@@ -7533,11 +7401,7 @@ end
         end
 
     })
--- =================================================================
--- SILENT AIM ENHANCEMENT MODULE (โมดูลยิงคมพิเศษสำหรับ Blockspin)
--- =================================================================
 
--- 1. ฟังก์ชันคำนวณ Ping แบบแม่นยำสูง
 local function GetExactPing()
     local ping = 0.1
     pcall(function()
@@ -7547,24 +7411,20 @@ local function GetExactPing()
     return math.clamp(ping, 0.01, 0.5)
 end
 
--- 2. ฟังก์ชันทำนายตำแหน่งล่วงหน้าฉบับปรับปรุง (High-Precision Prediction)
 local function EnhancedPredictPosition(targetPart, targetHRP)
     if not targetPart or not targetHRP then return Vector3.zero end
     
     local ping = GetExactPing()
     local velocity = targetHRP.AssemblyLinearVelocity or Vector3.zero
     
-    -- คำนวณตำแหน่งล่วงหน้าโดยใช้ Ping + ค่าสัมประสิทธิ์ความเร็ว (Velocity Multiplier)
-    -- ปรับตัวเลข 1.15 ตามความเร็วของกระสุนในแมพ
     local predictedPosition = targetPart.Position + (velocity * ping * 1.15)
     
     return predictedPosition
 end
 
--- 3. ฟังก์ชันค้นหาเป้าหมายแบบคัดกรองพิเศษ (Smart Target Selector)
 local function GetBestSilentAimTarget()
     local bestTarget = nil
-    local minDistance = H or 120 -- ใช้ค่า Radius FOV เดิม
+    local minDistance = H or 120 
     local viewportCenter = Vector2.new(y.ViewportSize.X / 2, y.ViewportSize.Y / 2)
     local localHead = r.Character and r.Character:FindFirstChild("Head")
 
@@ -7575,18 +7435,14 @@ local function GetBestSilentAimTarget()
             local head = char:FindFirstChild("Head")
             local hrp = char:FindFirstChild("HumanoidRootPart")
 
-            -- ตรวจสอบว่าเป้าหมายมีชีวิตและไม่ได้อยู่ในรายชื่อยกเว้น (Safe Friend)
             if hum and hum.Health > 0 and head and hrp and not isPlayerExcluded(player.Name) then
-                -- เลือกว่าจะเล็งส่วนไหน (Head หรือ HumanoidRootPart)
                 local aimPart = (SelectedAimPart == "HumanoidRootPart") and hrp or head
                 local screenPos, onScreen = y:WorldToViewportPoint(aimPart.Position)
 
                 if onScreen then
                     local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
                     
-                    -- เช็กว่าอยู่ในระยะ FOV หรือไม่
                     if distFromCenter <= minDistance then
-                        -- เช็กว่าเป้าหมายหลบอยู่หลังกำแพงหรือไม่
                         local isBlocked = false
                         if localHead then
                             isBlocked = isBehindWall(localHead.Position, aimPart.Position)
@@ -7605,13 +7461,12 @@ local function GetBestSilentAimTarget()
     return bestTarget
 end
 
--- 4. เขียนทับการทำงานในลูป RenderStepped เพื่ออัปเดตเป้าหมายที่คมขึ้น
 task.spawn(function()
     b.RenderStepped:Connect(function()
-        if F then -- เมื่อเปิดใช้งาน Silent Aim
+        if F then 
             local smartTarget = GetBestSilentAimTarget()
             if smartTarget then
-                I = smartTarget -- ส่งเป้าหมายที่ดีที่สุดไปยังระบบยิง Remote
+                I = smartTarget 
             end
         end
     end)
@@ -7619,12 +7474,9 @@ end)
 
 print("[RO89 Hub] Silent Aim Optimization Loaded Successfully!")
 
--- ==========================================
--- 🎯 Silent Aim คมพิเศษ (คำนวณความเร็ว + ดักหลบ ไม่ใช้ Hitbox หลอก)
--- ==========================================
 task.spawn(function()
     RunService.RenderStepped:Connect(function()
-        if F then -- ทำงานเมื่อเปิด Silent Aim
+        if F then 
             local bestTarget = nil
             local minDistance = H or 120
             local viewportCenter = Vector2.new(y.ViewportSize.X / 2, y.ViewportSize.Y / 2)
@@ -7637,21 +7489,18 @@ task.spawn(function()
                     local head = char:FindFirstChild("Head")
                     local hrp = char:FindFirstChild("HumanoidRootPart")
 
-                    -- เช็กว่ามีชีวิตอยู่และไม่ใช่เพื่อนในรายการยกเว้น
                     if hum and hum.Health > 0 and head and hrp and not isPlayerExcluded(targetPlayer.Name) then
                         local screenPos, onScreen = y:WorldToViewportPoint(head.Position)
 
                         if onScreen then
                             local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
                             
-                            -- เช็กว่าอยู่ในวงกลม FOV
                             if distFromCenter <= minDistance then
                                 local isBlocked = false
                                 if localHead then
                                     isBlocked = isBehindWall(localHead.Position, head.Position)
                                 end
 
-                                -- ถ้าไม่ติดกำแพง ให้เลือกเป้าหมายที่อยู่ใกล้ศูนย์กลางจอที่สุด
                                 if not isBlocked then
                                     minDistance = distFromCenter
                                     bestTarget = targetPlayer
@@ -7662,7 +7511,6 @@ task.spawn(function()
                 end
             end
 
-            -- ส่งเป้าหมายที่คำนวณได้ไปยังระบบยิงหลัก
             if bestTarget then
                 I = bestTarget
             end
@@ -7672,9 +7520,6 @@ end)
 
 print("[RO89 Hub] Safe & Sharp Silent Aim + Snap UI Loaded!")
 
--- ==========================================
--- ระบบ Fly Jump (กดกระโดดค้างเพื่อลอยตัว)
--- ==========================================
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -7682,9 +7527,6 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local isHoldingJump = false
 
--- ==========================================
--- 1. ตรวจจับการ "กดปุ่ม" (เริ่มลอย)
--- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
@@ -7693,18 +7535,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- ==========================================
--- 2. ตรวจจับการ "ปล่อยปุ่ม" (หยุดลอย)
--- ==========================================
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.Space then
         isHoldingJump = false
     end
 end)
 
--- ==========================================
--- 3. ลูปทำงานเพื่อดึงตัวละครขึ้น
--- ==========================================
 RunService.Heartbeat:Connect(function()
     if isHoldingJump then
         local character = player.Character
@@ -7712,8 +7548,6 @@ RunService.Heartbeat:Connect(function()
             local hrp = character:FindFirstChild("HumanoidRootPart")
             if hrp then
                 local currentVel = hrp.AssemblyLinearVelocity
-                
-                -- ล็อกค่าความเร็วแนวดิ่งไว้ที่ 50 โดยตรง เพื่อป้องกันผู้ใช้ปรับแต่ง
                 hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, 50, currentVel.Z)
             end
         end

@@ -7737,3 +7737,311 @@ task.spawn(function()
 end)
 
 print("[RO89 Hub] Wall Bang + Silent Aim Combo Loaded Successfully!")
+-- ==========================================
+-- ฟังก์ชัน Anti Lock v2: ส่ายระดับสุดยอด
+-- ==========================================
+
+-- ตัวแปรควบคุม
+local antiLockV2Enabled = false
+local shakeIntensity = 1.0
+local shakeSpeed = 0.05
+local shakeRange = 10
+
+-- ฟังก์ชันสร้างการส่ายแบบสุ่ม
+local function applyAntiShake()
+    if not antiLockV2Enabled then return end
+    
+    local character = r.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    -- สร้างการส่ายแบบสุ่มในแกน X, Y, Z
+    local randomX = math.random(-shakeRange, shakeRange)
+    local randomY = math.random(-shakeRange, shakeRange)
+    local randomZ = math.random(-shakeRange, shakeRange)
+    
+    -- ทำให้ตำแหน่งส่ายแบบสุ่ม
+    local currentCFrame = humanoidRootPart.CFrame
+    local shakeOffset = CFrame.new(randomX * 0.1, randomY * 0.1, randomZ * 0.1)
+    
+    -- ปรับ CFrame ให้ส่ายแบบรุนแรง
+    humanoidRootPart.CFrame = currentCFrame:ToWorldSpace(shakeOffset)
+    
+    -- สร้างการส่ายในการหมุนด้วย
+    local randomRotationX = math.random(-5, 5) * shakeIntensity
+    local randomRotationY = math.random(-5, 5) * shakeIntensity
+    local randomRotationZ = math.random(-5, 5) * shakeIntensity
+    
+    local rotationOffset = CFrame.Angles(
+        math.rad(randomRotationX), 
+        math.rad(randomRotationY), 
+        math.rad(randomRotationZ)
+    )
+    
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame * rotationOffset
+end
+
+-- ฟังก์ชันเพิ่มความรุนแรงในการส่าย
+local function applyIntenseShake()
+    if not antiLockV2Enabled then return end
+    
+    local character = r.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    
+    -- สุ่มความเร็วในการเคลื่อนที่
+    local randomSpeed = math.random(50, 150)
+    humanoid.WalkSpeed = randomSpeed
+    
+    -- สุ่มความสูงในการกระโดด
+    local randomJump = math.random(50, 100)
+    humanoid.JumpPower = randomJump
+    
+    -- สุ่มความเร็วในการเคลื่อนที่แนวตั้ง
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        local verticalVelocity = math.random(-100, 100)
+        rootPart.Velocity = Vector3.new(rootPart.Velocity.X, verticalVelocity, rootPart.Velocity.Z)
+    end
+end
+
+-- ฟังก์ชันสร้างการส่ายแบบต่อเนื่อง
+local function continuousShake()
+    while antiLockV2Enabled do
+        applyAntiShake()
+        applyIntenseShake()
+        task.wait(shakeSpeed)
+    end
+end
+
+-- เพิ่ม UI สำหรับ Anti Lock v2
+local characterTab = B:Tab{Title="ตัวละคร", Icon="user"}
+characterTab:Section{Title="Anti Lock v2"}
+
+local antiLockV2Toggle = characterTab:Toggle{
+    Title = "Anti Lock v2",
+    Default = false,
+    Callback = function(enabled)
+        antiLockV2Enabled = enabled
+        
+        if enabled then
+            if A then
+                A:Notify{Title="✅ Anti Lock v2 Enabled", Duration=3}
+            end
+            -- เริ่มการส่ายแบบต่อเนื่อง
+            task.spawn(continuousShake)
+            
+            -- ปรับค่าส่ายให้รุนแรง
+            shakeIntensity = 2.0
+            shakeSpeed = 0.02
+            shakeRange = 15
+        else
+            if A then
+                A:Notify{Title="❌ Anti Lock v2 Disabled", Duration=3}
+            end
+            
+            -- คืนค่าปกติ
+            local character = r.Character
+            if character then
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = 16
+                    humanoid.JumpPower = 50
+                end
+                
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    rootPart.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end
+    end
+}
+
+D:Register("AntiLockV2", antiLockV2Toggle)
+
+-- ปุ่มปรับความรุนแรงในการส่าย
+local shakeIntensitySlider = characterTab:Slider{
+    Title = "Shake Intensity",
+    Step = 0.1,
+    Value = {Min = 0.5, Max = 5.0, Default = 2.0},
+    Callback = function(value)
+        shakeIntensity = value
+    end
+}
+
+local shakeSpeedSlider = characterTab:Slider{
+    Title = "Shake Speed",
+    Step = 0.01,
+    Value = {Min = 0.01, Max = 0.1, Default = 0.02},
+    Callback = function(value)
+        shakeSpeed = value
+    end
+}
+
+local shakeRangeSlider = characterTab:Slider{
+    Title = "Shake Range",
+    Step = 1,
+    Value = {Min = 5, Max = 20, Default = 15},
+    Callback = function(value)
+        shakeRange = value
+    end
+}
+
+-- ปุ่มกดเพื่อเพิ่มความรุนแรงชั่วคราว
+local characterTab = B:Tab{Title="ตัวละคร", Icon="user"}
+characterTab:Button{
+    Title = "Intense Shake",
+    Callback = function()
+        if antiLockV2Enabled then
+            -- เพิ่มความรุนแรงชั่วคราว
+            local originalIntensity = shakeIntensity
+            local originalSpeed = shakeSpeed
+            local originalRange = shakeRange
+            
+            shakeIntensity = 5.0
+            shakeSpeed = 0.01
+            shakeRange = 25
+            
+            -- หลังจาก 5 วินาทีจะกลับเป็นปกติ
+            task.wait(5)
+            
+            shakeIntensity = originalIntensity
+            shakeSpeed = originalSpeed
+            shakeRange = originalRange
+        end
+    end
+}
+
+print("[RO89 Hub] Anti Lock v2 Loaded Successfully!")
+-- ==========================================
+-- ฟังก์ชัน Ghost Mode: ล่องหน 100%
+-- ==========================================
+
+local ghostModeEnabled = false
+
+-- ฟังก์ชันหลัก: ทำให้ตัวละครล่องหน
+local function applyGhostMode()
+    if not ghostModeEnabled then return end
+    
+    local character = r.Character
+    if not character then return end
+    
+    -- ทำให้ BasePart ของตัวละครทั้งหมดโปร่งใส
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 1
+        end
+    end
+    
+    -- ทำให้ Humanoid หายไป
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Transparency = 1
+    end
+    
+    -- ทำให้ HumanoidRootPart หายไป
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        rootPart.Transparency = 1
+    end
+    
+    -- ปิดการแสดงผลตัวละครบน Minimap (ถ้ามี)
+    local minimap = workspace:FindFirstChild("Minimap")
+    if minimap then
+        minimap.Enabled = false
+    end
+end
+
+-- ฟังก์ชันหลัก: กลับมาเป็นปกติ
+local function disableGhostMode()
+    if not ghostModeEnabled then return end
+    
+    local character = r.Character
+    if not character then return end
+    
+    -- ทำให้ BasePart ของตัวละครทั้งหมดเป็นปกติ
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 0
+        end
+    end
+    
+    -- ทำให้ Humanoid กลับมาเห็น
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Transparency = 0
+    end
+    
+    -- ทำให้ HumanoidRootPart กลับมาเห็น
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        rootPart.Transparency = 0
+    end
+    
+    -- เปิดการแสดงผลตัวละครบน Minimap (ถ้ามี)
+    local minimap = workspace:FindFirstChild("Minimap")
+    if minimap then
+        minimap.Enabled = true
+    end
+end
+
+-- ฟังก์ชันเช็คสถานะ
+local function checkGhostStatus()
+    return ghostModeEnabled
+end
+
+-- เพิ่ม UI สำหรับ Ghost Mode
+local characterTab = B:Tab{Title="ตัวละคร", Icon="user"}
+characterTab:Section{Title="Ghost Mode"}
+
+local ghostModeToggle = characterTab:Toggle{
+    Title = "Ghost Mode (ล่องหน)",
+    Default = false,
+    Callback = function(enabled)
+        ghostModeEnabled = enabled
+        
+        if enabled then
+            if A then
+                A:Notify{Title="✅ Ghost Mode Enabled", Duration=3}
+            end
+            -- เริ่มการล่องหน
+            applyGhostMode()
+        else
+            if A then
+                A:Notify{Title="❌ Ghost Mode Disabled", Duration=3}
+            end
+            -- คืนค่าปกติ
+            disableGhostMode()
+        end
+    end
+}
+
+D:Register("GhostMode", ghostModeToggle)
+
+-- ปุ่มกดเพื่อเปิด/ปิดได้ทันที
+local characterTab = B:Tab{Title="ตัวละคร", Icon="user"}
+characterTab:Button{
+    Title = "Toggle Ghost Mode",
+    Callback = function()
+        ghostModeEnabled = not ghostModeEnabled
+        
+        if ghostModeEnabled then
+            if A then
+                A:Notify{Title="✅ Ghost Mode Enabled", Duration=3}
+            end
+            applyGhostMode()
+        else
+            if A then
+                A:Notify{Title="❌ Ghost Mode Disabled", Duration=3}
+            end
+            disableGhostMode()
+        end
+    end
+}
+
+print("[RO89 Hub] Ghost Mode Loaded Successfully!")

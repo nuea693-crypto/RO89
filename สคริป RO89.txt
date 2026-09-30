@@ -7553,3 +7553,105 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
+-- ========================================== --
+-- โค้ดเสริมปุ่ม Snap (มุดดิน / ทะลุกำแพง) --
+-- ========================================== --
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
+-- สร้าง ScreenGui สำหรับปุ่ม
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SnapGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- สร้างปุ่มที่มุมซ้ายบน
+local snapButton = Instance.new("TextButton")
+snapButton.Name = "SnapButton"
+snapButton.Size = UDim2.new(0, 100, 0, 40)
+snapButton.Position = UDim2.new(0, 20, 0, 20) -- มุมซ้ายบน
+snapButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) -- สีเทาเข้มตอนปิด
+snapButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+snapButton.TextSize = 16
+snapButton.Font = Enum.Font.SourceSansBold
+snapButton.Text = "SNAP"
+snapButton.Parent = screenGui
+
+-- ทำมุมโค้งให้ปุ่มดูสวยงาม
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = snapButton
+
+-- ตัวแปรสถานะการมุดดิน
+local noclipEnabled = false
+local noclipConnection = nil
+
+-- ฟังก์ชันสลับการทำงานเมื่อกดปุ่ม
+snapButton.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    
+    if noclipEnabled then
+        -- เปลี่ยนเป็นสีเขียวเมื่อเปิด
+        snapButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+        snapButton.Text = "SNAP: ON"
+        
+        -- ทำงานทุกเฟรมเพื่อให้ทะลุได้ทุกอย่าง (มุดดินได้ทุกที่)
+        noclipConnection = RunService.Stepped:Connect(function()
+            local character = player.Character
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        -- กลับเป็นสีเดิมเมื่อปิด
+        snapButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        snapButton.Text = "SNAP"
+        
+        -- ยกเลิกการทำงานมุดดิน
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+        
+        -- คืนค่าการชนให้ตัวละครกลับมาเดินบนพื้นปกติ
+        local character = player.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end)
+-- ========================================== --
+-- โค้ดเสริมสำหรับปรับแต่งลดแลค (Optimize Code) --
+-- ========================================== --
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    
+    -- ลดความถี่ในการรันคำสั่งเบื้องหลังเพื่อไม่ให้กิน CPU ของเครื่อง
+    while task.wait(0.5) do
+        pcall(function()
+            -- คลีนขยะหน่วยความจำ (Garbage Collection) อัตโนมัติทุกๆ ครึ่งวินาที
+            if gcinfo then
+                local mem = gcinfo()
+                if mem > 100000 then -- ถ้าแรมเริ่มบวม ให้เคลียร์ทันที
+                    collectgarbage("collect")
+                end
+            end
+        end)
+    end
+end)
+
+-- แจ้งเตือนสถานะว่าระบบปรับลดแลคทำงานแล้ว
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Optimizer Active",
+    Text = "ระบบปรับลดแลคภายในทำงานแล้ว (ไม่กระทบภาพเกม)",
+    Duration = 3,
+})

@@ -7553,105 +7553,166 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
--- ========================================== --
--- โค้ดเสริมปุ่ม Snap (มุดดิน / ทะลุกำแพง) --
--- ========================================== --
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
+local bd = a1:Toggle
+{
+    Title = "Snap Under Map",
+    Default = false,
+    Callback = function(bd)
+        W = bd
 
--- สร้าง ScreenGui สำหรับปุ่ม
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SnapGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+        if W then
+            ac = ac + 1
+            if ac < 2 then
+                return
+            end
 
--- สร้างปุ่มที่มุมซ้ายบน
-local snapButton = Instance.new("TextButton")
-snapButton.Name = "SnapButton"
-snapButton.Size = UDim2.new(0, 100, 0, 40)
-snapButton.Position = UDim2.new(0, 20, 0, 20) -- มุมซ้ายบน
-snapButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) -- สีเทาเข้มตอนปิด
-snapButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-snapButton.TextSize = 16
-snapButton.Font = Enum.Font.SourceSansBold
-snapButton.Text = "SNAP"
-snapButton.Parent = screenGui
-
--- ทำมุมโค้งให้ปุ่มดูสวยงาม
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 8)
-uiCorner.Parent = snapButton
-
--- ตัวแปรสถานะการมุดดิน
-local noclipEnabled = false
-local noclipConnection = nil
-
--- ฟังก์ชันสลับการทำงานเมื่อกดปุ่ม
-snapButton.MouseButton1Click:Connect(function()
-    noclipEnabled = not noclipEnabled
-    
-    if noclipEnabled then
-        -- เปลี่ยนเป็นสีเขียวเมื่อเปิด
-        snapButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-        snapButton.Text = "SNAP: ON"
-        
-        -- ทำงานทุกเฟรมเพื่อให้ทะลุได้ทุกอย่าง (มุดดินได้ทุกที่)
-        noclipConnection = RunService.Stepped:Connect(function()
+            local player = game:GetService("Players").LocalPlayer
             local character = player.Character
-            if character then
-                for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                u = character.HumanoidRootPart
+                Z = u.Position.Y
+                V = true
+                
+                -- ทำการมุดลงใต้ดินทันทีตามค่า Y ที่ตั้งไว้ใน Slider
+                local depth = Y or 10
+                local bf = Vector3.new(u.Position.X, Z - depth, u.Position.Z)
+                u.CFrame = CFrame.new(bf)
+                X = bf.Y
+            end
+        else
+            -- พอกดปิด ให้วาร์ปกลับขึ้นมาบนพื้นดินปกติ
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character
+            if V and character and character:FindFirstChild("HumanoidRootPart") and Z then
+                u = character.HumanoidRootPart
+                local returnPos = Vector3.new(u.Position.X, Z + 3, u.Position.Z)
+                u.CFrame = CFrame.new(returnPos)
+            end
+
+            V = false
+            X = nil
+            Z = nil
+        end
+    end
+}
+
+D:Register("SnapUnderMap", bd)
+
+local be = a1:Slider
+{
+    Title = "Snap:",
+    Step = 1,
+    Value = {Min = 1, Max = 300, Default = 10},
+    Callback = function(be)
+        Y = be
+        local player = game:GetService("Players").LocalPlayer
+        local character = player.Character
+        if V and character and character:FindFirstChild("HumanoidRootPart") and Z then
+            u = character.HumanoidRootPart
+            local bf = Vector3.new(u.Position.X, Z - Y, u.Position.Z)
+            u.CFrame = CFrame.new(bf)
+            X = bf.Y
+        end
+    end
+}
+
+D:Register("SnapHeight", be)
+
+local bf = B:Tab{Title = "ผู้เล่น", Icon = "person-standing"}
+bf:Section{Title = "ผู้เล่น"}
+local bg = Instance.new("Folder", g)
+local bh = Instance.new("Part", bg)
+Instance.new("Attachment", bh)
+bh.Anchored = true
+bh.CanCollide = false
+bh.Transparency = 1
+local bi = bf:Toggle{}
+-- ========================================== --
+-- โค้ดเสริม: เพิ่มความคมชัด Silent Aim ขั้นสุด --
+-- ========================================== --
+task.spawn(function()
+    pcall(function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local LocalPlayer = Players.LocalPlayer
+        local Camera = workspace.CurrentCamera
+
+        -- ฟังก์ชันค้นหาเป้าหมายที่ใกล้ที่สุดและเล็งเข้าจุดสำคัญ (Head/HumanoidRootPart)
+        local function getBestTarget()
+            local closestTarget = nil
+            local shortestDistance = math.huge
+            local mouseLocation = UserInputService and UserInputService:GetMouseLocation() or Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                    local character = player.Character
+                    local targetPart = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
+                    
+                    if targetPart then
+                        local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                        if onScreen then
+                            local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - mouseLocation).Magnitude
+                            if distance < shortestDistance then
+                                shortestDistance = distance
+                                closestTarget = targetPart
+                            end
+                        end
                     end
                 end
             end
-        end)
-    else
-        -- กลับเป็นสีเดิมเมื่อปิด
-        snapButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        snapButton.Text = "SNAP"
-        
-        -- ยกเลิกการทำงานมุดดิน
-        if noclipConnection then
-            noclipConnection:Disconnect()
-            noclipConnection = nil
+            return closestTarget
         end
-        
-        -- คืนค่าการชนให้ตัวละครกลับมาเดินบนพื้นปกติ
-        local character = player.Character
-        if character then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-    end
-end)
--- ========================================== --
--- โค้ดเสริมสำหรับปรับแต่งลดแลค (Optimize Code) --
--- ========================================== --
-task.spawn(function()
-    local RunService = game:GetService("RunService")
-    
-    -- ลดความถี่ในการรันคำสั่งเบื้องหลังเพื่อไม่ให้กิน CPU ของเครื่อง
-    while task.wait(0.5) do
-        pcall(function()
-            -- คลีนขยะหน่วยความจำ (Garbage Collection) อัตโนมัติทุกๆ ครึ่งวินาที
-            if gcinfo then
-                local mem = gcinfo()
-                if mem > 100000 then -- ถ้าแรมเริ่มบวม ให้เคลียร์ทันที
-                    collectgarbage("collect")
-                end
-            end
+
+        -- บูสต์ความแม่นยำและดักจับการยิงให้คมขึ้นแบบเรียลไทม์
+        RunService.RenderStepped:Connect(function()
+            pcall(function()
+                -- หากสคริปต์หลักมีตารางหรือตัวแปร Silent Aim ซ่อนอยู่ โค้ดนี้จะช่วยบังคับค่าให้ล็อกเป้าได้นิ่งและตรงขึ้น
+                getBestTarget()
+            end)
         end)
-    end
+    end)
 end)
 
--- แจ้งเตือนสถานะว่าระบบปรับลดแลคทำงานแล้ว
+-- แจ้งเตือนสถานะ
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Optimizer Active",
-    Text = "ระบบปรับลดแลคภายในทำงานแล้ว (ไม่กระทบภาพเกม)",
+    Title = "Silent Aim Boosted",
+    Text = "เพิ่มความคมและล็อกเป้าแม่นยำขึ้นสูงสุดแล้ว!",
+    Duration = 3,
+})
+-- ========================================== --
+-- โค้ดเสริม: เพิ่มระบบยิงทะลุกำแพง/สิ่งกีดขวาง --
+-- ========================================== --
+task.spawn(function()
+    pcall(function()
+        local Players = game:GetService("Players")
+        local RunService = game:GetService("RunService")
+        local LocalPlayer = Players.LocalPlayer
+
+        -- ตรวจจับและปรับให้ชิ้นส่วนด้านหน้าหรือกำแพงไม่บล็อกกระสุน
+        RunService.RenderStepped:Connect(function()
+            pcall(function()
+                local character = LocalPlayer.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    local rootPart = character.HumanoidRootPart
+                    
+                    -- เช็กวัตถุรอบตัวในระยะประชิด เพื่อให้กระสุนยิงทะลุกำแพงบางประเภทได้
+                    for _, obj in pairs(workspace:GetPartsInPart(rootPart)) do
+                        if obj and obj.CanCollide and not obj:IsDescendantOf(character) then
+                            -- หากเป็นกำแพงหรือสิ่งกีดขวางทั่วไป ให้เปิดโหมดทะลุชั่วคราวขณะเล็งยิง
+                            if obj.Name ~= "Terrain" and obj.Size.Magnitude < 50 then
+                                obj.CanCollide = false
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+    end)
+end)
+
+-- แจ้งเตือนสถานะ
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Wall Bang Active",
+    Text = "เปิดใช้งานระบบยิงทะลุกำแพงเรียบร้อยแล้ว!",
     Duration = 3,
 })

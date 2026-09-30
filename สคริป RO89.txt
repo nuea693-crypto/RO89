@@ -7518,115 +7518,6 @@ task.spawn(function()
     end)
 end)
 
-print("[RO89 Hub] Safe & Sharp Silent Aim + Snap UI Loaded!")
-
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer
-local isHoldingJump = false
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.Space then
-        isHoldingJump = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.Space then
-        isHoldingJump = false
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if isHoldingJump then
-        local character = player.Character
-        if character then
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local currentVel = hrp.AssemblyLinearVelocity
-                hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, 50, currentVel.Z)
-            end
-        end
-    end
-end)
-local bd = a1:Toggle
-{
-    Title = "Snap Under Map",
-    Default = false,
-    Callback = function(bd)
-        W = bd
-
-        if W then
-            ac = ac + 1
-            if ac < 2 then
-                return
-            end
-
-            local player = game:GetService("Players").LocalPlayer
-            local character = player.Character
-            if character and character:FindFirstChild("HumanoidRootPart") then
-                u = character.HumanoidRootPart
-                Z = u.Position.Y
-                V = true
-                
-                -- ทำการมุดลงใต้ดินทันทีตามค่า Y ที่ตั้งไว้ใน Slider
-                local depth = Y or 10
-                local bf = Vector3.new(u.Position.X, Z - depth, u.Position.Z)
-                u.CFrame = CFrame.new(bf)
-                X = bf.Y
-            end
-        else
-            -- พอกดปิด ให้วาร์ปกลับขึ้นมาบนพื้นดินปกติ
-            local player = game:GetService("Players").LocalPlayer
-            local character = player.Character
-            if V and character and character:FindFirstChild("HumanoidRootPart") and Z then
-                u = character.HumanoidRootPart
-                local returnPos = Vector3.new(u.Position.X, Z + 3, u.Position.Z)
-                u.CFrame = CFrame.new(returnPos)
-            end
-
-            V = false
-            X = nil
-            Z = nil
-        end
-    end
-}
-
-D:Register("SnapUnderMap", bd)
-
-local be = a1:Slider
-{
-    Title = "Snap:",
-    Step = 1,
-    Value = {Min = 1, Max = 300, Default = 10},
-    Callback = function(be)
-        Y = be
-        local player = game:GetService("Players").LocalPlayer
-        local character = player.Character
-        if V and character and character:FindFirstChild("HumanoidRootPart") and Z then
-            u = character.HumanoidRootPart
-            local bf = Vector3.new(u.Position.X, Z - Y, u.Position.Z)
-            u.CFrame = CFrame.new(bf)
-            X = bf.Y
-        end
-    end
-}
-
-D:Register("SnapHeight", be)
-
-local bf = B:Tab{Title = "ผู้เล่น", Icon = "person-standing"}
-bf:Section{Title = "ผู้เล่น"}
-local bg = Instance.new("Folder", g)
-local bh = Instance.new("Part", bg)
-Instance.new("Attachment", bh)
-bh.Anchored = true
-bh.CanCollide = false
-bh.Transparency = 1
-local bi = bf:Toggle{}
 -- ========================================== --
 -- โค้ดเสริม: เพิ่มความคมชัด Silent Aim ขั้นสุด --
 -- ========================================== --
@@ -7679,40 +7570,170 @@ game:GetService("StarterGui"):SetCore("SendNotification", {
     Text = "เพิ่มความคมและล็อกเป้าแม่นยำขึ้นสูงสุดแล้ว!",
     Duration = 3,
 })
--- ========================================== --
--- โค้ดเสริม: เพิ่มระบบยิงทะลุกำแพง/สิ่งกีดขวาง --
--- ========================================== --
-task.spawn(function()
-    pcall(function()
-        local Players = game:GetService("Players")
-        local RunService = game:GetService("RunService")
-        local LocalPlayer = Players.LocalPlayer
+-- ==========================================
+-- ฟังก์ชัน Wall Bang + Silent Aim Combo
+-- ==========================================
 
-        -- ตรวจจับและปรับให้ชิ้นส่วนด้านหน้าหรือกำแพงไม่บล็อกกระสุน
-        RunService.RenderStepped:Connect(function()
-            pcall(function()
-                local character = LocalPlayer.Character
-                if character and character:FindFirstChild("HumanoidRootPart") then
-                    local rootPart = character.HumanoidRootPart
+local function isWallBangEnabled()
+    return _G.WallBangEnabled or false
+end
+
+-- ฟังก์ชันหลัก: ยิงทะลุกำแพงแบบจริง
+local function applyWallBang()
+    if not isWallBangEnabled() then return end
+    
+    local character = r.Character
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    
+    local mousePos = d:GetMouseLocation()
+    
+    -- ฟังก์ชันตรวจว่าจุดปลายเป้าหมายเป็นกำแพงหรือไม่
+    local function isTargetBehindWall(targetPos)
+        local rayParams = RaycastParams.new()
+        rayParams.FilterDescendantsInstances = {character}
+        rayParams.FilterType = Enum.RaycastFilterType.Exclude
+        
+        local rayResult = workspace:Raycast(rootPart.Position, (targetPos - rootPart.Position).Unit * 200, rayParams)
+        
+        if rayResult then
+            return true -- มีกำแพงบังอยู่
+        end
+        
+        return false -- ไม่มีกำแพงบัง
+    end
+    
+    -- ตรวจวัตถุรอบตัวเพื่อเปิดโหมดทะลุชั่วคราว
+    local partsInReach = workspace:GetPartsInPart(rootPart, RaycastParams.new())
+    
+    for _, part in ipairs(partsInReach) do
+        if part and part.CanCollide and not part:IsDescendantOf(character) then
+            -- เปิดโหมดทะลุกำแพง
+            part.CanCollide = false
+        end
+    end
+end
+
+-- ฟังก์ชันสำหรับอัปเดตเป้าหมายแบบล็อคทะลุกำแพง
+local function getBestWallBangTarget()
+    local bestTarget = nil
+    local minDistance = H or 120
+    local viewportCenter = Vector2.new(y.ViewportSize.X / 2, y.ViewportSize.Y / 2)
+    local localHead = r.Character and r.Character:FindFirstChild("Head")
+
+    for _, player in ipairs(a:GetPlayers()) do
+        if player ~= r and player.Character then
+            local char = player.Character
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local head = char:FindFirstChild("Head")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+
+            if hum and hum.Health > 0 and head and hrp and not isPlayerExcluded(player.Name) then
+                local aimPart = (SelectedAimPart == "HumanoidRootPart") and hrp or head
+                local screenPos, onScreen = y:WorldToViewportPoint(aimPart.Position)
+
+                if onScreen then
+                    local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
                     
-                    -- เช็กวัตถุรอบตัวในระยะประชิด เพื่อให้กระสุนยิงทะลุกำแพงบางประเภทได้
-                    for _, obj in pairs(workspace:GetPartsInPart(rootPart)) do
-                        if obj and obj.CanCollide and not obj:IsDescendantOf(character) then
-                            -- หากเป็นกำแพงหรือสิ่งกีดขวางทั่วไป ให้เปิดโหมดทะลุชั่วคราวขณะเล็งยิง
-                            if obj.Name ~= "Terrain" and obj.Size.Magnitude < 50 then
-                                obj.CanCollide = false
+                    if distFromCenter <= minDistance then
+                        -- ตรวจสอบว่ามีกำแพงบังหรือไม่
+                        if localHead then
+                            local isBlocked = isBehindWall(localHead.Position, aimPart.Position)
+                            
+                            -- ถ้าเปิด Wall Bang ให้ยิงทะลุได้แม้มีกำแพง
+                            if not isBlocked or isWallBangEnabled() then
+                                minDistance = distFromCenter
+                                bestTarget = player
                             end
+                        else
+                            minDistance = distFromCenter
+                            bestTarget = player
                         end
                     end
                 end
-            end)
+            end
+        end
+    end
+
+    return bestTarget
+end
+
+-- ฟังก์ชัน Hook การยิงเพื่อให้ยิงทะลุได้จริง
+local originalFireServer
+pcall(function()
+    if E and E.FireServer then
+        originalFireServer = hookfunction(E.FireServer, function(...)
+            local args = {...}
+            
+            if F and args[2] == "shoot_gun" and I then
+                local target = I.Character and I.Character:FindFirstChild("Head")
+                local localHead = r.Character and r.Character:FindFirstChild("Head")
+                
+                if target and localHead then
+                    -- ตรวจสอบว่ามีกำแพงบังหรือไม่
+                    local isBlocked = isBehindWall(localHead.Position, target.Position)
+                    
+                    if isBlocked and not isWallBangEnabled() then
+                        -- ถ้าไม่ได้เปิด Wall Bang ให้ยิงที่กลางกำแพง
+                        args[4] = CFrame.new(math.huge, math.huge, math.huge)
+                    end
+                end
+            end
+            
+            return originalFireServer(...)
         end)
+    end
+end)
+
+-- เพิ่ม UI สำหรับ Wall Bang
+local aimbotTab = B:Tab{Title="Aimbot", Icon="crosshair"}
+aimbotTab:Section{Title="Aimbot Settings"}
+
+local wallBangToggle = aimbotTab:Toggle{
+    Title = "Wall Bang Active",
+    Default = false,
+    Callback = function(enabled)
+        _G.WallBangEnabled = enabled
+        
+        if enabled then
+            if A then
+                A:Notify{Title="✅ Wall Bang Enabled", Duration=3}
+            end
+            -- เปิดโหมดทะลุทันที
+            task.spawn(function()
+                while enabled do
+                    applyWallBang()
+                    task.wait(0.1)
+                end
+            end)
+        else
+            if A then
+                A:Notify{Title="❌ Wall Bang Disabled", Duration=3}
+            end
+            -- ปิดโหมดทะลุ
+            for _, part in ipairs(workspace:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide and part.Name ~= "Terrain" then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+}
+
+D:Register("WallBang", wallBangToggle)
+
+-- อัปเดตเป้าหมายแบบล็อค Wall Bang
+task.spawn(function()
+    b.RenderStepped:Connect(function()
+        if F then 
+            local wallBangTarget = getBestWallBangTarget()
+            if wallBangTarget then
+                I = wallBangTarget
+            end
+        end
     end)
 end)
 
--- แจ้งเตือนสถานะ
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Wall Bang Active",
-    Text = "เปิดใช้งานระบบยิงทะลุกำแพงเรียบร้อยแล้ว!",
-    Duration = 3,
-})
+print("[RO89 Hub] Wall Bang + Silent Aim Combo Loaded Successfully!")

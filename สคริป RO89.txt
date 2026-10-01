@@ -7948,3 +7948,56 @@ task.spawn(function()
 end)
 
 print("[RO89 Hub] Wall Bang + Silent Aim Combo Loaded Successfully!")
+-- ========== ANTI LOCK V2 (แก้ปัญหาแล้ว) ==========
+-- ตรวจสอบว่ามีตัวแปร ai() หรือไม่ ถ้าไม่มีจะสร้างใหม่
+if not ai then
+    ai = getgenv or function() return _G end
+end
+
+-- ฟังก์ชัน Anti Lock V2: ส่ายตัวแบบสุ่มและลอยตัวสูง
+local function antiLockV2()
+    -- ตรวจสอบว่าฟีเจอร์เปิดอยู่และตัวละครมีอยู่
+    if not (ai().Sky and r.Character and r.Character:FindFirstChild("HumanoidRootPart")) then
+        return
+    end
+
+    local rootPart = r.Character.HumanoidRootPart
+    local currentVelocity = rootPart.Velocity
+    local tickTime = tick()
+
+    -- ค่าสุ่มสำหรับการส่ายแบบรัดกุม (มุมส่ายสูง)
+    local wiggleX = math.sin(tickTime * 100) * 5  -- เพิ่มความถี่และความแรง
+    local wiggleZ = math.cos(tickTime * 100) * 5
+    local wiggleY = math.sin(tickTime * 60) * 10
+
+    -- ค่าความเร็วลอยตัวสูงสุด (ส่ายแรงขึ้น)
+    local flySpeed = 800  -- เพิ่มความเร็ว
+
+    -- คำนวณความเร็วใหม่โดยผสมผสานการส่ายและการลอยตัว
+    local newVelocity = Vector3.new(
+        currentVelocity.X + wiggleX + math.random(-5, 5),
+        currentVelocity.Y + wiggleY,
+        currentVelocity.Z + wiggleZ + math.random(-5, 5)
+    )
+
+    -- ถ้าเปิดโหมดลอยตัว
+    if ai().SkyAmount > 1000 then
+        newVelocity = Vector3.new(
+            math.random(-20, 20),
+            math.random(300, 500), -- ลอยตัวสูงแบบสุ่ม
+            math.random(-20, 20)
+        )
+    end
+
+    -- ตั้งความเร็วใหม่
+    rootPart.Velocity = newVelocity
+
+    -- รอเล็กน้อยแล้วรีเซ็ตความเร็ว
+    task.wait(0.05)
+    rootPart.Velocity = currentVelocity
+end
+
+-- เชื่อมต่อฟังก์ชัน Anti Lock V2 กับ Heartbeat
+b.Heartbeat:Connect(antiLockV2)
+
+print("[RO89 Hub] Anti Lock V2 Loaded Successfully!")
